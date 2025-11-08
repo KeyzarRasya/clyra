@@ -7,6 +7,7 @@ import (
 	"comdel-backend/internal/repository"
 	"comdel-backend/internal/routes"
 	"comdel-backend/internal/services"
+	"fmt"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
@@ -38,17 +39,23 @@ import (
 // c.Start()
 
 func main() {
-	err := godotenv.Load(".env");
-
+	home, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal("Failed to load .env files");
+		log.Info(err)
+		return
 	}
 
-	serverConfig := config.ServerConfig();
-	app := fiber.New(serverConfig);
+	err = godotenv.Load(fmt.Sprintf("%s/.comdel/.env", home))
+
+	if err != nil {
+		log.Fatal("Failed to load .env files")
+	}
+
+	serverConfig := config.ServerConfig()
+	app := fiber.New(serverConfig)
 
 	corsConfig := cors.Config{
-		AllowOrigins:     "http://localhost:5173",
+		AllowOrigins:     "*",
 		AllowHeaders:     "*",
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
 		AllowCredentials: true,
@@ -59,7 +66,7 @@ func main() {
 
 	if err != nil {
 		log.Info("Failed to load database at start")
-		return;
+		return
 	}
 
 	/* Google OAuth Config */
@@ -69,12 +76,11 @@ func main() {
 		"https://www.googleapis.com/auth/youtube.force-ssl",
 	}
 	oauthConfig := oauth2.Config{
-		RedirectURL: 	"http://localhost:8080/auth/google/redirect",
-		ClientID: 		os.Getenv("GOOGLE_CLIENT_ID"),
-		ClientSecret: 	os.Getenv("GOOGLE_CLIENT_SECRET"),
-		Scopes: 		scopes,
-		Endpoint: 		google.Endpoint,
-		
+		RedirectURL:  "http://localhost:8080/auth/google/redirect",
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		Scopes:       scopes,
+		Endpoint:     google.Endpoint,
 	}
 
 	/* Google Oauth Provider */
@@ -108,19 +114,18 @@ func main() {
 	redisAddr := os.Getenv("REDIS_ADDR")
 
 	log.Info("RedisADdr")
-	log.Info(redisAddr);
+	log.Info(redisAddr)
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: os.Getenv("REDIS_ADDR"),
+		Addr:     os.Getenv("REDIS_ADDR"),
 		Password: "",
-		DB: 0,
+		DB:       0,
 		Protocol: 2,
 	})
 	redisService := services.NewRedisService(redisClient)
-	
-	
+
 	/*
-	===START===
-	Service Dependency
+		===START===
+		Service Dependency
 	*/
 	// 1. User Service Dependency Injection
 	ytService := services.YoutubeServiceImpl{OAuthProvider: googleOauth}
@@ -130,7 +135,7 @@ func main() {
 		videoRepository,
 		&auth,
 		&dbLoader,
-		googleOauth, 
+		googleOauth,
 		&ytService,
 		&redisService,
 	)
@@ -163,7 +168,7 @@ func main() {
 	/* Handler Dependency */
 	userHandlers := handlers.NewUserHandlers(userService)
 	videoHandlers := handlers.NewVideoHandlers(videoService)
-	paymentHandlers := handlers.NewPaymentHandlers(paymentService);
+	paymentHandlers := handlers.NewPaymentHandlers(paymentService)
 
 	/* Middleware Injecting*/
 	subsciptionMiddleware := middleware.NewSubscriptionMiddleware(paymentService)
@@ -177,11 +182,9 @@ func main() {
 		paymentHandlers,
 		subsciptionMiddleware,
 	)
-	
-	
 
-
-	app.Use(cors.New(corsConfig));
-	route.UserRoute(app);
-	app.Listen(":8080");
+	app.Use(cors.New(corsConfig))
+	route.UserRoute(app)
+	log.Info("LIstening")
+	app.Listen(":8080")
 }
