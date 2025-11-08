@@ -10,5 +10,9 @@
     <p class="text-xl font-bold text-white">
         Selamat Datang di Comdel!
     </p>
+
+    <div>
+        <h2>Pegantar</h2>
+    </div>
   </div>
 </section>

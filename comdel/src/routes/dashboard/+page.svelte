@@ -27,9 +27,6 @@
         user = result.data
     }
 
-    console.log(user)
-    
-
     function setKonten(num: Number) {
         konten = num;
         console.log(konten);

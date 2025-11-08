@@ -7,6 +7,7 @@ export const load: PageServerLoad = async ({cookies, fetch}) => {
 
     const BASE_URL = VITE_DEV_ENV == "dev" ? VITE_LOCAL_URL : VITE_DOCKER_URL
 
+    console.log("base")
     console.log(BASE_URL)
 
     
@@ -35,6 +36,7 @@ export const load: PageServerLoad = async ({cookies, fetch}) => {
         }
 
     }catch(err){
+        console.log("dashboard error");
         console.log(err)
         throw redirect(307, "/error")
     }
