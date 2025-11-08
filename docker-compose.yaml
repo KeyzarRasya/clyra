@@ -19,7 +19,7 @@ services:
     depends_on:
       - database
       - model
-    
+
   model:
     build: ./comdel-model-api
     ports:
