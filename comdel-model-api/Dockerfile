@@ -10,6 +10,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
+# Pre-download Hugging Face model & tokenizer so it's cached in the image
+RUN python -c "from transformers import AutoTokenizer, AutoModelForSequenceClassification; \
+    AutoTokenizer.from_pretrained('KeyzarRasya/yt-com'); \
+    AutoModelForSequenceClassification.from_pretrained('KeyzarRasya/yt-com')"
+
 # Now copy the rest of the application code
 COPY . .
 
@@ -17,4 +22,4 @@ COPY . .
 EXPOSE 8000
 
 # Run the FastAPI app using uvicorn
-CMD ["fastapi", "run"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
