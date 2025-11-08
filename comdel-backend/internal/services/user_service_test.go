@@ -14,7 +14,6 @@ import (
 	"google.golang.org/api/youtube/v3"
 )
 
-
 func TestGetUser_EmptyCookie(t *testing.T) {
 	service := NewUserService(nil, nil, nil, nil, nil, nil, nil, nil)
 	resp := service.GetUser("")
@@ -58,6 +57,12 @@ func TestGetUser_UserNotFound(t *testing.T) {
 		},
 	}
 
+	mockVideoRepo := mock.MockVideoRepository{
+		GetByIdFunc: func(videoId string) (*model.Videos, error) {
+			return &model.Videos{}, nil
+		},
+	}
+
 	mockRedisRepo := mock.MockRedisUserStore{
 		GetUserAndVideoFunc: func(userId string) (*model.User, []string, error) {
 			return nil, nil, nil
@@ -68,7 +73,7 @@ func TestGetUser_UserNotFound(t *testing.T) {
 		},
 	}
 
-	service := NewUserService(&userRepo, nil, nil, &auth, nil, nil, nil, &mockRedisRepo)
+	service := NewUserService(&userRepo, nil, &mockVideoRepo, &auth, nil, nil, nil, &mockRedisRepo)
 	resp := service.GetUser("valid-cookie")
 
 	if resp.Status != fiber.StatusBadRequest {
@@ -104,7 +109,7 @@ func TestGetUser_VideoFetchFailed(t *testing.T) {
 		},
 
 		IsCacheMissFunc: func(err error) bool {
-			return true
+			return false
 		},
 	}
 
@@ -209,16 +214,16 @@ func TestSaveUser_TransactionFailed(t *testing.T) {
 		},
 	}
 
-	userService := NewUserService(nil, nil, nil, nil, &mockDBLoader, nil, nil, nil);
+	userService := NewUserService(nil, nil, nil, nil, &mockDBLoader, nil, nil, nil)
 
-	res := userService.SaveUser(dto.GoogleProfile{}, nil);
+	res := userService.SaveUser(dto.GoogleProfile{}, nil)
 
 	if res.Status != fiber.StatusBadRequest {
-		t.Errorf("Expected to be bad request, founded that %d", res.Status);
+		t.Errorf("Expected to be bad request, founded that %d", res.Status)
 	}
 
 	if res.Message != "failed to start transaction" {
-		t.Errorf("Unexpected message, got %s", res.Message);
+		t.Errorf("Unexpected message, got %s", res.Message)
 	}
 }
 
@@ -299,7 +304,7 @@ func TestSaveUser_SaveFailed(t *testing.T) {
 
 	userService := NewUserService(&mockUserRepo, nil, nil, nil, &mockDBLoader, nil, mockYoutubeService, nil)
 
-	res := userService.SaveUser(dto.GoogleProfile{}, nil);
+	res := userService.SaveUser(dto.GoogleProfile{}, nil)
 
 	if res.Status != fiber.StatusBadRequest {
 		t.Errorf("Unexpected error status, found %d", res.Status)
@@ -355,10 +360,9 @@ func TestSaveUser_SaveTokenFailed(t *testing.T) {
 		},
 	}
 
-
 	userService := NewUserService(&mockUserRepo, &mockTokenRepo, nil, nil, &mockDBLoader, nil, mockYoutubeService, nil)
 
-	res := userService.SaveUser(dto.GoogleProfile{}, nil);
+	res := userService.SaveUser(dto.GoogleProfile{}, nil)
 
 	if res.Status != fiber.StatusBadRequest {
 		t.Errorf("Unexpected error status, found %d", res.Status)
